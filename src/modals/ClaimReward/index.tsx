@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { useState, useEffect } from 'react';
-import { formatBalance } from '@polkadot/util';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faWallet } from '@fortawesome/free-solid-svg-icons';
 import { faArrowAltCircleUp } from '@fortawesome/free-regular-svg-icons';
@@ -16,6 +15,7 @@ import { APIContextInterface } from 'types/api';
 import { useActivePool } from 'contexts/Pools/ActivePool';
 import { ConnectContextInterface } from 'types/connect';
 import { ActivePoolContextState } from 'types/pools';
+import { planckBnToUnit } from 'Utils';
 import {
   HeadingWrapper,
   FooterWrapper,
@@ -84,11 +84,7 @@ export const ClaimReward = () => {
           <Warning text="You have no rewards to claim." />
         )}
         <h2>
-          {formatBalance(unclaimedReward, {
-            decimals: units,
-            withSiFull: true,
-            withUnit: unit,
-          })}
+          {planckBnToUnit(unclaimedReward, units)} {network.unit}
         </h2>
         <Separator />
         <div className="notes">
