@@ -19,6 +19,7 @@ import {
   isValidAddress,
   localStorageOrDefault,
   setStateWithRef,
+  registerSaEvent,
 } from 'Utils';
 import { useApi } from '../Api';
 import { defaultConnectContext } from './defaults';
@@ -396,6 +397,11 @@ export const ConnectProvider = ({
       const extension: ExtensionInteface = await enable(DappName);
 
       if (extension !== undefined) {
+        // successful extension connection event.
+        registerSaEvent(`${network.name.toLowerCase()}_extension_connected`, {
+          id,
+        });
+
         // subscribe to accounts
         const _unsubscribe = (await extension.accounts.subscribe(
           (injected: ExtensionAccount[]) => {

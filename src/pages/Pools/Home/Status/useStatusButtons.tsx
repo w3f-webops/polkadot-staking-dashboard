@@ -8,12 +8,13 @@ import { useActivePools } from 'contexts/Pools/ActivePools';
 import { useBondedPools } from 'contexts/Pools/BondedPools';
 import { usePoolMemberships } from 'contexts/Pools/PoolMemberships';
 import { usePoolsConfig } from 'contexts/Pools/PoolsConfig';
+import { registerSaEvent } from 'Utils';
 import { useTransferOptions } from 'contexts/TransferOptions';
 import { useUi } from 'contexts/UI';
 import { usePoolsTabs } from '../context';
 
 export const useStatusButtons = () => {
-  const { isReady } = useApi();
+  const { isReady, network } = useApi();
   const { setOnPoolSetup, getPoolSetupProgressPercent } = useUi();
   const { activeAccount, isReadOnlyAccount } = useConnect();
   const { stats } = usePoolsConfig();
@@ -38,7 +39,12 @@ export const useStatusButtons = () => {
       !activeAccount ||
       stats.maxPools.toNumber() === 0 ||
       bondedPools.length === stats.maxPools.toNumber(),
-    onClick: () => setOnPoolSetup(1),
+    onClick: () => {
+      registerSaEvent(
+        `${network.name.toLowerCase()}_pool_create_button_pressed`
+      );
+      setOnPoolSetup(1);
+    },
   };
 
   const joinPoolBtn = {
@@ -50,7 +56,10 @@ export const useStatusButtons = () => {
       isReadOnlyAccount(activeAccount) ||
       !activeAccount ||
       !bondedPools.length,
-    onClick: () => setActiveTab(2),
+    onClick: () => {
+      registerSaEvent(`${network.name.toLowerCase()}_pool_join_button_pressed`);
+      setActiveTab(2);
+    },
   };
 
   if (!membership) {

@@ -17,9 +17,9 @@ import { useModal } from 'contexts/Modal';
 import { useStaking } from 'contexts/Staking';
 import { useUi } from 'contexts/UI';
 import { useValidators } from 'contexts/Validators';
+import { planckBnToUnit, rmCommas, registerSaEvent } from 'Utils';
 import { CardWrapper } from 'library/Graphs/Wrappers';
 import Stat from 'library/Stat';
-import { planckBnToUnit, rmCommas } from 'Utils';
 import { Separator } from 'Wrappers';
 import { Controller } from './Controller';
 
@@ -116,7 +116,12 @@ export const Status = ({ height }: { height: number }) => {
                     !isReady ||
                     isReadOnlyAccount(activeAccount) ||
                     !activeAccount,
-                  onClick: () => setOnNominatorSetup(1),
+                  onClick: () => {
+                    registerSaEvent(
+                      `${network.name.toLowerCase()}_nominate_setup_button_pressed`
+                    );
+                    setOnNominatorSetup(1);
+                  },
                 },
               ]
         }

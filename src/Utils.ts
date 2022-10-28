@@ -5,7 +5,7 @@ import { decodeAddress, encodeAddress } from '@polkadot/keyring';
 import { hexToU8a, isHex, u8aToString, u8aUnwrapBytes } from '@polkadot/util';
 import BN from 'bn.js';
 import { MutableRefObject } from 'react';
-import { AnyMetaBatch, PagesConfig } from 'types/index';
+import { AnyApi, AnyMetaBatch, PagesConfig } from 'types/index';
 
 export const clipAddress = (val: string) => {
   if (typeof val !== 'string') {
@@ -231,4 +231,10 @@ export const extractUrlValue = (key: string, url: string) => {
   if (typeof url === 'undefined') url = window.location.href;
   const match = url.match(`[?&]${key}=([^&]+)`);
   return match ? match[1] : null;
+};
+
+export const registerSaEvent = (e: string, a: AnyApi = {}) => {
+  if ((window as AnyApi).sa_event) {
+    (window as AnyApi).sa_event(e, a);
+  }
 };
