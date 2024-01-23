@@ -6,6 +6,8 @@ import type { Theme } from 'contexts/Themes/types';
 import type { ExtensionInjected } from '@polkadot-cloud/react/types';
 import type BigNumber from 'bignumber.js';
 import type { NotificationItem } from 'static/NotificationsController/types';
+import type { ActiveBalance } from 'contexts/Balances/types';
+import type { PayoutType } from 'static/SubscanController/types';
 
 declare global {
   interface Window {
@@ -14,6 +16,9 @@ declare global {
   interface DocumentEventMap {
     notification: CustomEvent<NotificationItem>;
     'new-block-number': CustomEvent<{ blockNumber: string }>;
+    'new-external-account': CustomEvent<{ address: string }>;
+    'new-account-balance': CustomEvent<ActiveBalance & { address: string }>;
+    'subscan-data-updated': CustomEvent<{ keys: PayoutType[] }>;
   }
 }
 
@@ -37,7 +42,6 @@ export interface Network {
   namespace: string;
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   colors: Record<NetworkColor, { [key in Theme]: string }>;
-  subscanEndpoint: string;
   unit: string;
   units: number;
   ss58: number;

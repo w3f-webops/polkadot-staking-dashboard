@@ -77,22 +77,6 @@ export const BondedProvider = ({ children }: { children: ReactNode }) => {
     handleExistingAccounts();
   };
 
-  // Handle accounts sync on connected accounts change.
-  useEffectIgnoreInitial(() => {
-    if (isReady) {
-      handleSyncAccounts();
-    }
-  }, [accounts, network, isReady]);
-
-  // Unsubscribe from subscriptions on unmount.
-  useEffect(
-    () => () =>
-      Object.values(unsubs.current).forEach((unsub) => {
-        unsub();
-      }),
-    []
-  );
-
   // Subscribe to account, get controller and nominations.
   const subscribeToBondedAccount = async (address: string) => {
     if (!api) {
@@ -158,21 +142,27 @@ export const BondedProvider = ({ children }: { children: ReactNode }) => {
     bondedAccountsRef.current.find((a) => a.address === address)?.nominations
       ?.targets || [];
 
-  const getAccount = (address: MaybeAddress) =>
-    bondedAccountsRef.current.find((a) => a.address === address) || null;
+  // Handle accounts sync on connected accounts change.
+  useEffectIgnoreInitial(() => {
+    if (isReady) {
+      handleSyncAccounts();
+    }
+  }, [accounts, network, isReady]);
 
-  const isController = (address: MaybeAddress) =>
-    bondedAccountsRef.current.filter((a) => (a?.bonded || '') === address)
-      ?.length > 0 || false;
-
+  // Unsubscribe from subscriptions on unmount.
+  useEffect(
+    () => () =>
+      Object.values(unsubs.current).forEach((unsub) => {
+        unsub();
+      }),
+    []
+  );
   return (
     <BondedContext.Provider
       value={{
-        getAccount,
         getBondedAccount,
         getAccountNominations,
-        isController,
-        bondedAccounts: bondedAccountsRef.current,
+        bondedAccounts,
       }}
     >
       {children}
