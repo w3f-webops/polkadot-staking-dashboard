@@ -7,13 +7,10 @@ import type { ReactNode, RefObject } from 'react';
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { SideMenuStickyThreshold } from 'consts';
 import { useBalances } from 'contexts/Balances';
-import type { ImportedAccount } from '@polkadot-cloud/react/types';
 import { useActivePools } from 'contexts/Pools/ActivePools';
 import { useEffectIgnoreInitial } from '@polkadot-cloud/react/hooks';
-import { useImportedAccounts } from 'contexts/Connect/ImportedAccounts';
 import type { AnyJson } from 'types';
 import { useApi } from '../Api';
-import { useNetworkMetrics } from '../NetworkMetrics';
 import { useStaking } from '../Staking';
 import * as defaults from './defaults';
 import type { UIContextInterface } from './types';
@@ -25,12 +22,10 @@ export const UIContext = createContext<UIContextInterface>(
 export const useUi = () => useContext(UIContext);
 
 export const UIProvider = ({ children }: { children: ReactNode }) => {
-  const { isReady } = useApi();
-  const { balances } = useBalances();
-  const { staking, eraStakers } = useStaking();
-  const { activeEra, metrics } = useNetworkMetrics();
+  const { eraStakers } = useStaking();
+  const { balancesInitialSynced } = useBalances();
   const { synced: activePoolsSynced } = useActivePools();
-  const { accounts: connectAccounts } = useImportedAccounts();
+  const { isReady, networkMetrics, activeEra, stakingMetrics } = useApi();
 
   // Set whether the network has been synced.
   const [isNetworkSyncing, setIsNetworkSyncing] = useState<boolean>(false);
@@ -47,7 +42,7 @@ export const UIProvider = ({ children }: { children: ReactNode }) => {
   // Store whether in Brave browser. Used for light client warning.
   const [isBraveBrowser, setIsBraveBrowser] = useState<boolean>(false);
 
-  // Store referneces for main app conainers.
+  // Store references for main app containers.
   const [containerRefs, setContainerRefsState] = useState<
     Record<string, RefObject<HTMLDivElement>>
   >({});
@@ -108,27 +103,20 @@ export const UIProvider = ({ children }: { children: ReactNode }) => {
     let poolSyncing = false;
 
     // staking metrics have synced
-    if (staking.lastReward === new BigNumber(0)) {
+    if (stakingMetrics.lastReward === new BigNumber(0)) {
       syncing = true;
       networkSyncing = true;
-      poolSyncing = true;
     }
 
     // era has synced from Network
     if (activeEra.index.isZero()) {
       syncing = true;
       networkSyncing = true;
-      poolSyncing = true;
     }
 
-    // all extension accounts have been synced
-    const extensionAccounts = connectAccounts.filter(
-      (a: ImportedAccount) => a.source !== 'external'
-    );
-    if (balances.length < extensionAccounts.length) {
+    if (!balancesInitialSynced) {
       syncing = true;
       networkSyncing = true;
-      poolSyncing = true;
     }
 
     setIsNetworkSyncing(networkSyncing);
@@ -147,7 +135,14 @@ export const UIProvider = ({ children }: { children: ReactNode }) => {
     }
 
     setIsSyncing(syncing);
-  }, [isReady, staking, metrics, balances, eraStakers, activePoolsSynced]);
+  }, [
+    isReady,
+    stakingMetrics,
+    networkMetrics,
+    eraStakers,
+    activePoolsSynced,
+    balancesInitialSynced,
+  ]);
 
   return (
     <UIContext.Provider

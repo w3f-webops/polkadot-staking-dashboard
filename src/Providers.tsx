@@ -9,7 +9,6 @@ import {
   OverlayProvider,
   LedgerAccountsProvider,
 } from '@polkadot-cloud/react/providers';
-import { ExtrinsicsProvider } from 'contexts/Extrinsics';
 import { FastUnstakeProvider } from 'contexts/FastUnstake';
 import { FiltersProvider } from 'contexts/Filters';
 import { LedgerHardwareProvider } from 'contexts/Hardware/Ledger/LedgerHardware';
@@ -18,7 +17,6 @@ import { HelpProvider } from 'contexts/Help';
 import { IdentitiesProvider } from 'contexts/Identities';
 import { MenuProvider } from 'contexts/Menu';
 import { MigrateProvider } from 'contexts/Migrate';
-import { NetworkMetricsProvider } from 'contexts/NetworkMetrics';
 import { PromptProvider } from 'contexts/Prompt';
 import { PluginsProvider } from 'contexts/Plugins';
 import { ActivePoolsProvider } from 'contexts/Pools/ActivePools';
@@ -29,7 +27,6 @@ import { PoolsConfigProvider } from 'contexts/Pools/PoolsConfig';
 import { ProxiesProvider } from 'contexts/Proxies';
 import { SetupProvider } from 'contexts/Setup';
 import { StakingProvider } from 'contexts/Staking';
-import { SubscanProvider } from 'contexts/Plugins/Subscan';
 import { TooltipProvider } from 'contexts/Tooltip';
 import { TransferOptionsProvider } from 'contexts/TransferOptions';
 import { TxMetaProvider } from 'contexts/TxMeta';
@@ -37,7 +34,6 @@ import { UIProvider } from 'contexts/UI';
 import { ValidatorsProvider } from 'contexts/Validators/ValidatorEntries';
 import { FavoriteValidatorsProvider } from 'contexts/Validators/FavoriteValidators';
 import { PayoutsProvider } from 'contexts/Payouts';
-import { PolkawatchProvider } from 'contexts/Plugins/Polkawatch';
 import { useNetwork } from 'contexts/Network';
 import { APIProvider } from 'contexts/Api';
 import { ThemedRouter } from 'Themes';
@@ -87,14 +83,11 @@ export const Providers = () => {
     OtherAccountsProvider,
     ImportedAccountsProvider,
     ProxiesProvider,
-    NetworkMetricsProvider,
     HelpProvider,
     PluginsProvider,
-    SubscanProvider,
-    PolkawatchProvider,
     IdentitiesProvider,
-    BalancesProvider,
     BondedProvider,
+    BalancesProvider,
     StakingProvider,
     PoolsConfigProvider,
     BondedPoolsProvider,
@@ -112,7 +105,6 @@ export const Providers = () => {
     MenuProvider,
     TooltipProvider,
     TxMetaProvider,
-    ExtrinsicsProvider,
     OverlayProvider,
     PromptProvider,
     MigrateProvider,

@@ -1,10 +1,8 @@
 // Copyright 2023 @paritytech/polkadot-staking-dashboard authors & contributors
 // SPDX-License-Identifier: GPL-3.0-only
 
-import type { VoidFn } from '@polkadot/api/types';
 import {
   greaterThanZero,
-  isNotZero,
   localStorageOrDefault,
   rmCommas,
   setStateWithRef,
@@ -14,13 +12,11 @@ import type { ReactNode } from 'react';
 import { createContext, useContext, useRef, useState } from 'react';
 import { useBalances } from 'contexts/Balances';
 import type { ExternalAccount } from '@polkadot-cloud/react/types';
-import type { PayeeConfig, PayeeOptions } from 'contexts/Setup/types';
 import type {
   EraStakers,
   Exposure,
   ExposureOther,
   StakingContextInterface,
-  StakingMetrics,
   StakingTargets,
 } from 'contexts/Staking/types';
 import type { AnyApi, MaybeAddress } from 'types';
@@ -32,11 +28,9 @@ import { useActiveAccounts } from 'contexts/ActiveAccounts';
 import { useImportedAccounts } from 'contexts/Connect/ImportedAccounts';
 import { useApi } from '../Api';
 import { useBonded } from '../Bonded';
-import { useNetworkMetrics } from '../NetworkMetrics';
 import {
   defaultEraStakers,
   defaultStakingContext,
-  defaultStakingMetrics,
   defaultTargets,
 } from './defaults';
 import {
@@ -55,24 +49,15 @@ export const StakingContext = createContext<StakingContextInterface>(
 export const useStaking = () => useContext(StakingContext);
 
 export const StakingProvider = ({ children }: { children: ReactNode }) => {
-  const { getStashLedger } = useBalances();
-  const { activeEra } = useNetworkMetrics();
+  const { getLedger } = useBalances();
+  const { isReady, api, apiStatus, consts, activeEra, isPagedRewardsActive } =
+    useApi();
   const { networkData, network } = useNetwork();
-  const { isPagedRewardsActive } = useNetworkMetrics();
-  const { isReady, api, apiStatus, consts } = useApi();
   const { accounts: connectAccounts } = useImportedAccounts();
   const { activeAccount, getActiveAccount } = useActiveAccounts();
   const { bondedAccounts, getBondedAccount, getAccountNominations } =
     useBonded();
   const { maxExposurePageSize } = consts;
-
-  // Store staking metrics in state.
-  const [stakingMetrics, setStakingMetrics] = useState<StakingMetrics>(
-    defaultStakingMetrics
-  );
-
-  // Store unsub object fro staking metrics.
-  const unsub = useRef<VoidFn | null>(null);
 
   // Store eras stakers in state.
   const [eraStakers, setEraStakers] = useState<EraStakers>(defaultEraStakers);
@@ -90,14 +75,6 @@ export const StakingProvider = ({ children }: { children: ReactNode }) => {
       true
     ) as StakingTargets
   );
-
-  // Handle metrics unsubscribe.
-  const unsubscribeMetrics = () => {
-    if (unsub.current !== null) {
-      unsub.current();
-      unsub.current = null;
-    }
-  };
 
   worker.onmessage = (message: MessageEvent) => {
     if (message) {
@@ -139,66 +116,6 @@ export const StakingProvider = ({ children }: { children: ReactNode }) => {
         );
       }
     }
-  };
-
-  // Multi subscription to staking metrics.
-  const subscribeToStakingkMetrics = async () => {
-    if (api !== null && isReady && isNotZero(activeEra.index)) {
-      const previousEra = activeEra.index.minus(1);
-
-      const u = await api.queryMulti<AnyApi>(
-        [
-          api.query.staking.counterForNominators,
-          api.query.staking.counterForValidators,
-          api.query.staking.maxValidatorsCount,
-          api.query.staking.validatorCount,
-          [api.query.staking.erasValidatorReward, previousEra.toString()],
-          [api.query.staking.erasTotalStake, previousEra.toString()],
-          api.query.staking.minNominatorBond,
-          [api.query.staking.payee, activeAccount],
-          [api.query.staking.erasTotalStake, activeEra.index.toString()],
-        ],
-        (q) => {
-          setStakingMetrics({
-            totalNominators: new BigNumber(q[0].toString()),
-            totalValidators: new BigNumber(q[1].toString()),
-            maxValidatorsCount: new BigNumber(q[2].toString()),
-            validatorCount: new BigNumber(q[3].toString()),
-            lastReward: new BigNumber(q[4].toString()),
-            lastTotalStake: new BigNumber(q[5].toString()),
-            minNominatorBond: new BigNumber(q[6].toString()),
-            payee: processPayee(q[7]),
-            totalStaked: new BigNumber(q[8].toString()),
-          });
-        }
-      );
-
-      unsub.current = u;
-    }
-  };
-
-  // Process raw payee object from API. payee with `Account` type is returned as an key value pair,
-  // with all others strings. This function handles both cases and formats into a unified structure.
-  const processPayee = (rawPayee: AnyApi) => {
-    const payeeHuman = rawPayee.toHuman();
-
-    let payeeFinal: PayeeConfig;
-    if (typeof payeeHuman === 'string') {
-      const destination = payeeHuman as PayeeOptions;
-      payeeFinal = {
-        destination,
-        account: null,
-      };
-    } else {
-      const payeeEntry = Object.entries(payeeHuman);
-      const destination = `${payeeEntry[0][0]}` as PayeeOptions;
-      const account = `${payeeEntry[0][1]}` as MaybeAddress;
-      payeeFinal = {
-        destination,
-        account,
-      };
-    }
-    return payeeFinal;
   };
 
   // Fetches erasStakers exposures for an era, and saves to `localStorage`.
@@ -325,11 +242,12 @@ export const StakingProvider = ({ children }: { children: ReactNode }) => {
 
   // Helper function to determine whether the active account is bonding, or is yet to start.
   const isBonding = () =>
-    hasController() && greaterThanZero(getStashLedger(activeAccount).active);
+    hasController() &&
+    greaterThanZero(getLedger({ stash: activeAccount }).active);
 
   // Helper function to determine whether the active account.
   const isUnlocking = () =>
-    hasController() && getStashLedger(activeAccount).unlocking.length;
+    hasController() && getLedger({ stash: activeAccount }).unlocking.length;
 
   // Helper function to determine whether the active account is nominating, or is yet to start.
   const isNominating = () => getAccountNominations(activeAccount).length > 0;
@@ -422,20 +340,8 @@ export const StakingProvider = ({ children }: { children: ReactNode }) => {
   useEffectIgnoreInitial(() => {
     if (apiStatus === 'connecting') {
       setStateWithRef(defaultEraStakers, setEraStakers, eraStakersRef);
-      setStakingMetrics(stakingMetrics);
     }
   }, [apiStatus]);
-
-  // Handle staking metrics subscription
-  useEffectIgnoreInitial(() => {
-    if (isReady) {
-      unsubscribeMetrics();
-      subscribeToStakingkMetrics();
-    }
-    return () => {
-      unsubscribeMetrics();
-    };
-  }, [isReady, activeEra, activeAccount]);
 
   // handle syncing with eraStakers
   useEffectIgnoreInitial(() => {
@@ -470,7 +376,6 @@ export const StakingProvider = ({ children }: { children: ReactNode }) => {
         isNominating,
         inSetup,
         getLowestRewardFromStaker,
-        staking: stakingMetrics,
         eraStakers: eraStakersRef.current,
         erasStakersSyncing: erasStakersSyncingRef.current,
         targets,
