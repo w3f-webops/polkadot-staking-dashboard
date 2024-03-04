@@ -2,19 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 import { faChevronLeft, faLinkSlash } from '@fortawesome/free-solid-svg-icons';
-import {
-  ActionItem,
-  ModalCustomHeader,
-  ModalPadding,
-} from '@polkadot-cloud/react';
-import { Fragment, useEffect, useState } from 'react';
+import { Fragment, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useBonded } from 'contexts/Bonded';
-import {
-  useExtensions,
-  useEffectIgnoreInitial,
-  useOverlay,
-} from '@polkadot-cloud/react/hooks';
 import { useProxies } from 'contexts/Proxies';
 import { useActiveAccounts } from 'contexts/ActiveAccounts';
 import { useImportedAccounts } from 'contexts/Connect/ImportedAccounts';
@@ -27,7 +16,6 @@ import type {
   AccountNominatingAndInPool,
   AccountNotStaking,
 } from './types';
-import type { ImportedAccount } from '@polkadot-cloud/react/types';
 import { useActiveBalances } from 'hooks/useActiveBalances';
 import type { MaybeAddress } from 'types';
 import { useTransferOptions } from 'contexts/TransferOptions';
@@ -35,6 +23,10 @@ import BigNumber from 'bignumber.js';
 import { useApi } from 'contexts/Api';
 import { ButtonPrimaryInvert } from 'kits/Buttons/ButtonPrimaryInvert';
 import { ButtonText } from 'kits/Buttons/ButtonText';
+import { useOverlay } from 'kits/Overlay/Provider';
+import { ModalPadding } from 'kits/Overlay/structure/ModalPadding';
+import { ModalCustomHeader } from 'kits/Overlay/structure/ModalCustomHeader';
+import { ActionItem } from 'library/ActionItem';
 
 export const Accounts = () => {
   const { t } = useTranslation('modals');
@@ -42,8 +34,6 @@ export const Accounts = () => {
     consts: { existentialDeposit },
   } = useApi();
   const { getDelegates } = useProxies();
-  const { bondedAccounts } = useBonded();
-  const { extensionsStatus } = useExtensions();
   const {
     replaceModal,
     status: modalStatus,
@@ -54,14 +44,10 @@ export const Accounts = () => {
   const { activeAccount, setActiveAccount, setActiveProxy } =
     useActiveAccounts();
 
-  // Store local copy of accounts.
-  const [localAccounts, setLocalAccounts] =
-    useState<ImportedAccount[]>(accounts);
-
   // Listen to balance updates for entire accounts list.
   const { getLocks, getBalance, getEdReserved, getPoolMembership } =
     useActiveBalances({
-      accounts: localAccounts.map(({ address }) => address),
+      accounts: accounts.map(({ address }) => address),
     });
 
   // Calculate transferrable balance of an address.
@@ -81,7 +67,7 @@ export const Accounts = () => {
 
   const stashes: string[] = [];
   // accumulate imported stash accounts
-  for (const { address } of localAccounts) {
+  for (const { address } of accounts) {
     const { locks } = getLocks(address);
 
     // account is a stash if they have an active `staking` lock
@@ -96,7 +82,7 @@ export const Accounts = () => {
   const nominatingAndPool: AccountNominatingAndInPool[] = [];
   const notStaking: AccountNotStaking[] = [];
 
-  for (const { address } of localAccounts) {
+  for (const { address } of accounts) {
     let isNominating = false;
     let isInPool = false;
     const isStash = stashes[stashes.indexOf(address)] ?? null;
@@ -165,15 +151,19 @@ export const Accounts = () => {
     }
   }
 
-  // Refresh local accounts state when context accounts change.
-  useEffect(() => setLocalAccounts(accounts), [accounts]);
-
   // Resize if modal open upon state changes.
-  useEffectIgnoreInitial(() => {
+  useEffect(() => {
     if (modalStatus === 'open') {
       setModalResize();
     }
-  }, [activeAccount, accounts, bondedAccounts, extensionsStatus]);
+  }, [
+    accounts,
+    activeAccount,
+    JSON.stringify(nominating),
+    JSON.stringify(inPool),
+    JSON.stringify(nominatingAndPool),
+    JSON.stringify(notStaking),
+  ]);
 
   return (
     <ModalPadding>

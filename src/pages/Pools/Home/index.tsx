@@ -9,7 +9,7 @@ import { CardWrapper } from 'library/Card/Wrappers';
 import { PoolList } from 'library/PoolList/Default';
 import { StatBoxList } from 'library/StatBoxList';
 import { useFavoritePools } from 'contexts/Pools/FavoritePools';
-import { useOverlay } from '@polkadot-cloud/react/hooks';
+import { useOverlay } from 'kits/Overlay/Provider';
 import { useActiveAccounts } from 'contexts/ActiveAccounts';
 import { PoolListProvider } from 'library/PoolList/context';
 import { Roles } from '../Roles';
@@ -30,6 +30,7 @@ import { PageTitle } from 'kits/Structure/PageTitle';
 import type { PageTitleTabProps } from 'kits/Structure/PageTitleTabs/types';
 import { PageRow } from 'kits/Structure/PageRow';
 import { RowSection } from 'kits/Structure/RowSection';
+import { WithdrawPrompt } from 'library/WithdrawPrompt';
 
 export const HomeInner = () => {
   const { t } = useTranslation('pages');
@@ -41,7 +42,9 @@ export const HomeInner = () => {
   const { activeTab, setActiveTab } = usePoolsTabs();
   const { getPoolRoles, activePool } = useActivePool();
   const { counterForBondedPools } = useApi().poolsConfig;
+
   const membership = getPoolMembership(activeAccount);
+  const { state } = activePool?.bondedPool || {};
 
   const { activePools } = useActivePools({
     poolIds: '*',
@@ -108,7 +111,11 @@ export const HomeInner = () => {
             <MinCreateBondStat />
           </StatBoxList>
 
-          <ClosurePrompts />
+          {state === 'Destroying' ? (
+            <ClosurePrompts />
+          ) : (
+            <WithdrawPrompt bondFor="pool" />
+          )}
 
           <PageRow>
             <RowSection hLast>

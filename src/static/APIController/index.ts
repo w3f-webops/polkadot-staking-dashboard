@@ -1,12 +1,12 @@
 // Copyright 2024 @paritytech/polkadot-staking-dashboard authors & contributors
 // SPDX-License-Identifier: GPL-3.0-only
 
-import type { ActiveEraInfo, BlockNumber } from '@polkadot/types/interfaces';
-import { makeCancelable, rmCommas, withTimeout } from '@polkadot-cloud/utils';
+import type { BlockNumber } from '@polkadot/types/interfaces';
+import { makeCancelable, rmCommas, withTimeout } from '@w3ux/utils';
 import { ApiPromise, WsProvider } from '@polkadot/api';
 import { ScProvider } from '@polkadot/rpc-provider/substrate-connect';
 import { NetworkList, NetworksWithPagedRewards } from 'config/networks';
-import type { NetworkName } from 'types';
+import type { AnyApi, NetworkName } from 'types';
 import type {
   APIConfig,
   ConnectionType,
@@ -14,7 +14,6 @@ import type {
   EventStatus,
   SubstrateConnect,
 } from './types';
-import type { Option } from '@polkadot/types-codec';
 import type { VoidFn } from '@polkadot/api/types';
 import BigNumber from 'bignumber.js';
 import { BalancesController } from 'static/BalancesController';
@@ -122,14 +121,18 @@ export class APIController {
     rpcEndpoint: string,
     options?: {
       initial?: boolean;
+      clearState?: boolean;
     }
   ) {
     // Only needed once: Initialize window online listeners.
-    if (options?.initial) {
+    if (options?.initial === true) {
       this.initOnlineEvents();
     } else {
-      // Tidy up any previous connection.
-      await this.disconnect();
+      // Tidy up any previous connection. If this initialization originated from an offline event,
+      // do not clear controller state - keep it persisted and attempt to reconnect.
+      await this.disconnect(
+        options?.clearState === undefined ? true : options.clearState
+      );
     }
 
     // Add initial syncing items.
@@ -151,8 +154,12 @@ export class APIController {
     if (type !== 'sc') {
       // Register connection attempt.
       this._connectAttempts++;
-      // Start connection attempt.
+
+      // Start connection attempt monitoring. Attempts to re-initialize API if subscriptions are not
+      // instantiated.
       this.onMonitorConnect(config);
+
+      // Start connection attempt with timeout.
       await withTimeout(this.getTimeout(), this.connect(config));
     } else {
       // Light client: Connect without timeout logic.
@@ -177,7 +184,9 @@ export class APIController {
       // If blocks are not being subscribed to, assume connection failed.
       if (!Object.keys(this._unsubs).length) {
         // Atempt api connection again.
-        this.initialize(config.network, config.type, config.rpcEndpoint);
+        this.initialize(config.network, config.type, config.rpcEndpoint, {
+          clearState: false,
+        });
       }
     }, this.getTimeout());
   };
@@ -277,7 +286,7 @@ export class APIController {
     // Fetch the active era. Needed for previous era and for queries below.
     const resultActiveEra = await this.api.query.staking.activeEra();
     const activeEra = JSON.parse(
-      (resultActiveEra as Option<ActiveEraInfo>).unwrapOrDefault().toString()
+      (resultActiveEra as AnyApi).unwrapOrDefault().toString()
     );
     // Store active era.
     this.activeEra = {
@@ -511,33 +520,31 @@ export class APIController {
   //
   // Also handles (re)subscribing to subscriptions that depend on active era.
   static subscribeActiveEra = async (): Promise<void> => {
-    const unsub = await this.api.query.staking.activeEra(
-      (result: Option<ActiveEraInfo>) => {
-        // determine activeEra: toString used as alternative to `toHuman`, that puts commas in
-        // numbers
-        const activeEra = JSON.parse(result.unwrapOrDefault().toString());
-        // Store active era.
-        this.activeEra = {
-          index: new BigNumber(activeEra.index),
-          start: new BigNumber(activeEra.start),
-        };
+    const unsub = await this.api.query.staking.activeEra((result: AnyApi) => {
+      // determine activeEra: toString used as alternative to `toHuman`, that puts commas in
+      // numbers
+      const activeEra = JSON.parse(result.unwrapOrDefault().toString());
+      // Store active era.
+      this.activeEra = {
+        index: new BigNumber(activeEra.index),
+        start: new BigNumber(activeEra.start),
+      };
 
-        // (Re)Subscribe to staking metrics `activeEra` has updated.
-        if (this._unsubs['stakingMetrics']) {
-          this._unsubs['stakingMetrics']();
-          delete this._unsubs['stakingMetrics'];
-        }
-        this.subscribeStakingMetrics();
-
-        // NOTE: Sending `activeEra` to document as a strings. UI needs to parse values into
-        // BigNumber.
-        document.dispatchEvent(
-          new CustomEvent(`new-active-era`, {
-            detail: { activeEra },
-          })
-        );
+      // (Re)Subscribe to staking metrics `activeEra` has updated.
+      if (this._unsubs['stakingMetrics']) {
+        this._unsubs['stakingMetrics']();
+        delete this._unsubs['stakingMetrics'];
       }
-    );
+      this.subscribeStakingMetrics();
+
+      // NOTE: Sending `activeEra` to document as a strings. UI needs to parse values into
+      // BigNumber.
+      document.dispatchEvent(
+        new CustomEvent(`new-active-era`, {
+          detail: { activeEra },
+        })
+      );
+    });
     this._unsubs['activeEra'] = unsub as unknown as VoidFn;
   };
 
@@ -649,7 +656,7 @@ export class APIController {
     ).isGreaterThanOrEqualTo(this._blockNumberVerify.minBlockNumber);
 
     if (!blocksSynced) {
-      await this.disconnect();
+      await this.handleOfflineEvent();
     } else {
       // Update block number verification data.
       this._blockNumberVerify.minBlockNumber = new BigNumber(this._blockNumber)
@@ -703,13 +710,14 @@ export class APIController {
     });
     window.addEventListener('online', () => {
       // Reconnect to the current API configuration.
-      this.initialize(this.network, this._connectionType, this._rpcEndpoint);
+      this.initialize(this.network, this._connectionType, this._rpcEndpoint, {
+        clearState: false,
+      });
     });
   }
 
   // Handle offline event
   static handleOfflineEvent = async () => {
-    await this.disconnect();
     // Tell UI api has been disconnected from an offline event.
     this.dispatchEvent(this.ensureEventStatus('disconnected'), {
       err: 'offline-event',
@@ -753,17 +761,23 @@ export class APIController {
     return 'error' as EventStatus;
   };
 
-  // Disconnect gracefully from API.
-  static async disconnect() {
+  // Disconnect gracefully from API. Provide a `clearState` value to determine whether to clear all
+  // controller state - only should be done on network change.
+  static async disconnect(clearState = true) {
     // Clear block number verification interval.
     clearInterval(this._blockNumberVerify.interval);
-    // Clear persisted network data.
-    this.activeEra = defaultActiveEra;
 
     // Unsubscribe from all subscriptions.
     this.unsubscribe();
     BalancesController.unsubscribe();
     ActivePoolsController.unsubscribe();
+
+    // Clear persisted data.
+    if (clearState) {
+      this.activeEra = defaultActiveEra;
+      BalancesController.resetState();
+      ActivePoolsController.resetState();
+    }
 
     // Disconnect from provider and api.
     this.unsubscribeProvider();

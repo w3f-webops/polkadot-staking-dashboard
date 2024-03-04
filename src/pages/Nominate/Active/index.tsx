@@ -8,7 +8,7 @@ import { useStaking } from 'contexts/Staking';
 import { CardHeaderWrapper, CardWrapper } from 'library/Card/Wrappers';
 import { useUnstaking } from 'hooks/useUnstaking';
 import { StatBoxList } from 'library/StatBoxList';
-import { useOverlay } from '@polkadot-cloud/react/hooks';
+import { useOverlay } from 'kits/Overlay/Provider';
 import { useActiveAccounts } from 'contexts/ActiveAccounts';
 import { Nominations } from 'library/Nominations';
 import { useValidators } from 'contexts/Validators/ValidatorEntries';
@@ -27,6 +27,7 @@ import { ButtonPrimary } from 'kits/Buttons/ButtonPrimary';
 import { PageTitle } from 'kits/Structure/PageTitle';
 import { PageRow } from 'kits/Structure/PageRow';
 import { RowSection } from 'kits/Structure/RowSection';
+import { WithdrawPrompt } from 'library/WithdrawPrompt';
 
 export const Active = () => {
   const { t } = useTranslation();
@@ -50,6 +51,9 @@ export const Active = () => {
         <MinimumNominatorBondStat />
         <MinimumActiveStakeStat />
       </StatBoxList>
+
+      <WithdrawPrompt bondFor="nominator" />
+
       <ControllerNotStash />
       <UnstakePrompts />
       <PageRow>
