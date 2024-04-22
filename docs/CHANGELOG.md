@@ -1,5 +1,35 @@
 # Changelog
 
+## [1.4.3](https://github.com/paritytech/polkadot-staking-dashboard/compare/v1.4.2...v1.4.3) (2024-04-22)
+
+
+### Features
+
+* remove over subscribed ([#2092](https://github.com/paritytech/polkadot-staking-dashboard/issues/2092)) ([5c17a3a](https://github.com/paritytech/polkadot-staking-dashboard/commit/5c17a3af0f049333b69e4c0364a092d905a438a7))
+
+
+### Bug Fixes
+
+* More over subscribed fixes ([#2094](https://github.com/paritytech/polkadot-staking-dashboard/issues/2094)) ([2c438e0](https://github.com/paritytech/polkadot-staking-dashboard/commit/2c438e0681d538cdabdf7357f85340c88d71e890))
+
+
+## [1.4.2](https://github.com/paritytech/polkadot-staking-dashboard/compare/v1.4.1...v1.4.2) (2024-04-22)
+
+
+### Features
+
+* Runtime upgrade 1,002,000 fixes ([#2090](https://github.com/paritytech/polkadot-staking-dashboard/issues/2090)) ([3b0bfb3](https://github.com/paritytech/polkadot-staking-dashboard/commit/3b0bfb380510cea5a882ddd3e72b9fa60184ec7d))
+
+
+## [1.4.1](https://github.com/paritytech/polkadot-staking-dashboard/compare/v1.4.0...v1.4.1) (2024-04-18)
+
+
+### Features
+
+* Enable paged rewards on Kusama, disable `missing_identity` ([#2088](https://github.com/paritytech/polkadot-staking-dashboard/issues/2088)) ([dda72ef](https://github.com/paritytech/polkadot-staking-dashboard/commit/dda72efb2f6569ecca99c67258d8ab732371f07b))
+
+
+
 ## [1.4.0](https://github.com/paritytech/polkadot-staking-dashboard/compare/v1.3.1...v1.4.0) (2024-04-18)
 
 
