@@ -1,4 +1,10 @@
-[![Polkadot - App](https://img.shields.io/badge/Polkadot-App-E6007A?logo=polkadot&logoColor=E6007A)](https://staking.polkadot.network) ![ci](https://github.com/paritytech/polkadot-staking-dashboard/actions/workflows/ci.yml/badge.svg) [![License](https://img.shields.io/badge/License-GPL3.0-blue.svg)](https://opensource.org/licenses/GPL-3.0)
+# DEPRECATED 
+
+This repository is deprecated in favour of [@polkadot-cloud/polkadot-staking-dashboard](https://github.com/polkadot-cloud/polkadot-staking-dashboard)
+
+---
+
+[![License](https://img.shields.io/badge/License-GPL3.0-blue.svg)](https://opensource.org/licenses/GPL-3.0)
 
 # Polkadot Staking Dashboard
 
